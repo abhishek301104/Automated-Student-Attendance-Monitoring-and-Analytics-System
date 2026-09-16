@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111827">
+<link rel="manifest" href="/manifest.json">
+<title>ATTENDX | Attendance Analytics</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div id="toast"></div>
+
+<section id="loginPage" class="login-page">
+  <div class="login-card">
+    <div class="brand">ATTENDX</div>
+    <p class="muted">Student Attendance Monitoring & Analytics</p>
+    <form id="loginForm">
+      <input id="email" type="email" placeholder="Email" required value="admin@attendx.local">
+      <input id="password" type="password" placeholder="Password" required value="password123">
+      <button class="primary" type="submit">Sign in</button>
+    </form>
+    <div class="demo">
+      <b>Demo</b><br>
+      Admin: admin@attendx.local / password123<br>
+      Student: aarav@example.com / password123
+    </div>
+  </div>
+</section>
+
+<section id="appPage" class="hidden">
+  <header class="topbar">
+    <div><b>ATTENDX</b><span class="top-sub"> Attendance Analytics</span></div>
+    <div class="top-actions"><span id="userName"></span><button id="logoutBtn" class="ghost">Logout</button></div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <button data-view="dashboard">📊 Dashboard</button>
+      <button data-view="students" class="admin-only">👨‍🎓 Students</button>
+      <button data-view="mark" class="admin-only">📝 Mark Attendance</button>
+      <button data-view="records" class="admin-only">📋 Records</button>
+      <button data-view="defaulters" class="admin-only">⚠️ Defaulters</button>
+      <button data-view="reports" class="admin-only">📁 Reports</button>
+      <button data-view="myattendance" class="student-only">🎓 My Attendance</button>
+      <button data-view="notifications" class="student-only">🔔 Alerts</button>
+    </aside>
+
+    <main class="content">
+      <div id="dashboard" class="view">
+        <div class="page-title"><div><h1>Dashboard</h1><p class="muted">Monitor attendance performance in one place.</p></div><button class="ghost" onclick="loadDashboard()">↻ Refresh</button></div>
+        <div class="cards">
+          <div class="card"><span>Active Students</span><strong id="kStudents">0</strong></div>
+          <div class="card"><span>Total Records</span><strong id="kRecords">0</strong></div>
+          <div class="card"><span>Overall Attendance</span><strong id="kOverall">0%</strong></div>
+          <div class="card danger"><span>Defaulters &lt;75%</span><strong id="kDefaulters">0</strong></div>
+          <div class="card"><span>Today's Records</span><strong id="kToday">0</strong></div>
+        </div>
+        <div class="grid2">
+          <div class="panel"><h2>Attendance Trend</h2><canvas id="trendChart" width="700" height="280"></canvas></div>
+          <div class="panel"><h2>Student Risk Distribution</h2><div id="distribution" class="distribution"></div><p class="muted">Good ≥75%, Warning 60–74%, Critical &lt;60%</p></div>
+        </div>
+      </div>
+
+      <div id="students" class="view hidden">
+        <div class="page-title"><div><h1>Students</h1><p class="muted">Add, search, update and manage students.</p></div><button class="primary" onclick="showStudentForm()">+ Add Student</button></div>
+        <div class="panel">
+          <input id="studentSearch" placeholder="Search name, roll number or email..." oninput="loadStudents()">
+          <div id="studentForm" class="form-grid hidden">
+            <input id="sRoll" placeholder="Roll No">
+            <input id="sName" placeholder="Full Name">
+            <input id="sEmail" placeholder="Email">
+            <input id="sDept" placeholder="Department" value="CSE">
+            <input id="sSem" type="number" placeholder="Semester" value="8">
+            <input id="sPhone" placeholder="Phone">
+            <button class="primary" onclick="addStudent()">Save Student</button>
+            <button class="ghost" onclick="document.getElementById('studentForm').classList.add('hidden')">Cancel</button>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>Roll</th><th>Name</th><th>Email</th><th>Dept</th><th>Sem</th><th>Attendance</th><th>Action</th></tr></thead><tbody id="studentsTable"></tbody></table></div>
+        </div>
+      </div>
+
+      <div id="mark" class="view hidden">
+        <div class="page-title"><div><h1>Mark Attendance</h1><p class="muted">Bulk attendance for a selected subject and date.</p></div></div>
+        <div class="panel">
+          <div class="form-grid">
+            <select id="markSubject"></select><input id="markDate" type="date"><button class="ghost" onclick="selectAllStatus('present')">All Present</button><button class="ghost" onclick="selectAllStatus('absent')">All Absent</button>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>Roll</th><th>Student</th><th>Status</th></tr></thead><tbody id="markTable"></tbody></table></div>
+          <button class="primary" onclick="saveAttendance()">Save Attendance</button>
+        </div>
+      </div>
+
+      <div id="records" class="view hidden">
+        <div class="page-title"><div><h1>Attendance Records</h1><p class="muted">Filter and review saved attendance.</p></div></div>
+        <div class="panel">
+          <div class="form-grid"><input id="recordDate" type="date"><select id="recordSubject"></select><button class="primary" onclick="loadRecords()">Filter</button></div>
+          <div class="table-wrap"><table><thead><tr><th>Date</th><th>Roll</th><th>Name</th><th>Subject</th><th>Status</th></tr></thead><tbody id="recordsTable"></tbody></table></div>
+        </div>
+      </div>
+
+      <div id="defaulters" class="view hidden">
+        <div class="page-title"><div><h1>Defaulters</h1><p class="muted">Students below the 75% attendance threshold.</p></div><button class="ghost" onclick="generateAlerts()">Generate Alerts</button></div>
+        <div class="panel table-wrap"><table><thead><tr><th>Roll</th><th>Name</th><th>Classes</th><th>Present</th><th>Attendance</th></tr></thead><tbody id="defaultersTable"></tbody></table></div>
+      </div>
+
+      <div id="reports" class="view hidden">
+        <div class="page-title"><div><h1>Reports</h1><p class="muted">Export attendance data for submission or review.</p></div></div>
+        <div class="panel report-buttons">
+          <button class="primary" onclick="downloadFile('/api/export/excel')">⬇ Export Excel</button>
+          <button class="primary" onclick="downloadFile('/api/export/pdf')">⬇ Export PDF</button>
+        </div>
+      </div>
+
+      <div id="myattendance" class="view hidden">
+        <div class="page-title"><div><h1>My Attendance</h1><p class="muted">Subject-wise attendance and recent history.</p></div></div>
+        <div class="panel"><div id="mySummary" class="mini-cards"></div></div>
+        <div class="panel"><h2>History</h2><div class="table-wrap"><table><thead><tr><th>Date</th><th>Subject</th><th>Status</th></tr></thead><tbody id="myHistory"></tbody></table></div></div>
+      </div>
+
+      <div id="notifications" class="view hidden">
+        <div class="page-title"><div><h1>Alerts</h1><p class="muted">Attendance notifications.</p></div></div>
+        <div id="notificationList"></div>
+      </div>
+    </main>
+  </div>
+</section>
+<script src="/app.js"></script>
+</body>
+</html>
